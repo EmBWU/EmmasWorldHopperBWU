@@ -4,9 +4,8 @@ This is a Kotlin project that uses the BotWithUs API to automate certain tasks i
 
 ## Features
 
-- Automated shop running
-- Customizable shop selection
-- Detailed shop information display
+- Automated Hopping of Worlds when Players are nearby
+
 
 ## Getting Started
 
