@@ -1,0 +1,64 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main  
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Validate Gradle Wrapper
+      uses: gradle/wrapper-validation-action@v1
+
+    - name: Set up JDK 20
+      uses: actions/setup-java@v2
+      with:
+        java-version: '20'
+        distribution: 'temurin'
+
+    - name: Generate unique tag
+      id: generate_tag
+      run: echo "UNIQUE_TAG=$(date +'%Y-%m-%dT%H-%M-%S')" >> $GITHUB_ENV
+      shell: bash
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x ./gradlew
+
+    - name: Build with Gradle
+      run: ./gradlew build
+
+    - name: Create Release
+      id: create_release # Ensure this ID is unique and correctly referenced later
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ env.UNIQUE_TAG }}
+        release_name: Release ${{ env.UNIQUE_TAG }}
+        draft: false
+        prerelease: false
+        
+    - name: Find JAR
+      id: find_jar
+      run: |
+        jar_path=$(ls ./build/libs/*.jar | head -n 1)
+        echo "jar_path=$jar_path" >> $GITHUB_ENV
+        jar_name=$(basename "$jar_path")
+        echo "jar_name=${jar_name}" >> $GITHUB_ENV
+      shell: bash
+
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This must match the ID of the 'Create Release' step
+        asset_path: ${{ env.jar_path }}
+        asset_name: ${{ env.jar_name }}
+        asset_content_type: application/java-archive
